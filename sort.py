@@ -104,15 +104,16 @@ def move_to_sorted(list_files, ext, count=0):
                             os.remove(item[0])
                     except ReadError as er:
                         print(f'*** Archive unpacking error: {er} ***')
-                        shutil.move(item[0], f'{sorted_folders_path}/other/{item[1]}(ERROR).{item[2]}')
+                        count += 1
+                        shutil.move(item[0], f'{sorted_folders_path}/other/{item[1]}(ERROR){count}.{item[2]}')
                         pass
                 else:
-                    path_to_sorted = f'{sorted_folders_path}/{k}/{normalise(item[1])}.{item[2]}'
-                    if not os.path.exists(path_to_sorted):
-                        shutil.move(item[0], path_to_sorted)
+                    path_to_sorted = f'{sorted_folders_path}/{k}/{normalise(item[1])}'
+                    if not os.path.exists(f'{path_to_sorted}.{item[2]}'):
+                        shutil.move(item[0], f'{path_to_sorted}.{item[2]}')
                     else:
                         count += 1
-                        shutil.move(item[0], f'{sorted_folders_path}/{k}/{normalise(item[1])}({count}).{item[2]}')
+                        shutil.move(item[0], f'{path_to_sorted}({count}).{item[2]}')
 
     try:
         while not_empty_folders:
@@ -120,12 +121,12 @@ def move_to_sorted(list_files, ext, count=0):
             not_empty_folders = get_path_unsorted(path)
             for item in not_empty_folders:
                 ext_list_unknown.append(item[2])
-                path_to_unsorted = f'{sorted_folders_path}/other/{item[1]}.{item[2]}'
-                if not os.path.exists(path_to_unsorted):
-                    shutil.move(item[0], path_to_unsorted)
+                path_to_unsorted = f'{sorted_folders_path}/other/{item[1]}'
+                if not os.path.exists(f'{path_to_unsorted}.{item[2]}'):
+                    shutil.move(item[0], f'{path_to_unsorted}.{item[2]}')
                 else:
                     count += 1
-                    shutil.move(item[0], f'{sorted_folders_path}/other/{item[1]}{count}.{item[2]}')
+                    shutil.move(item[0], f'{path_to_unsorted}{count}.{item[2]}')
     except FileNotFoundError:
         pass
 
