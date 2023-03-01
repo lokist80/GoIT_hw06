@@ -16,6 +16,8 @@ NOW = datetime.now().strftime('_%d_%m_')
 UUID = str(uuid.uuid1())[:8]
 sorted_folders_path = f'{os.getcwd()}/sorted{NOW}{UUID}'
 path_of_files = []
+ext_list_known = []
+ext_list_unknown = []
 tip = """Run script with ONLY one argument --> full path to unsorted folder:
 python3 sort.py <path to folder>
 """
@@ -89,6 +91,7 @@ def move_to_sorted(list_files, ext, count=0):
     for k, v in ext.items():
         for item in list_files:
             if item[2] in v:
+                ext_list_known.append(item[2])
                 if item[2] in ext['archive']:
                     path_to_sorted = f'{sorted_folders_path}/{k}/{normalise(item[1])}/'
                     try:
@@ -116,6 +119,7 @@ def move_to_sorted(list_files, ext, count=0):
             path_of_files.clear()
             not_empty_folders = get_path_unsorted(path)
             for item in not_empty_folders:
+                ext_list_unknown.append(item[2])
                 path_to_unsorted = f'{sorted_folders_path}/other/{item[1]}.{item[2]}'
                 if not os.path.exists(path_to_unsorted):
                     shutil.move(item[0], path_to_unsorted)
@@ -148,6 +152,8 @@ def main():
     get_path_from_args(path)
     move_to_sorted(path_of_files, extensions)
     get_path_unsorted(Path(sorted_folders_path), is_sort=True)
+    print(f'Known extensions: {sorted(list(set(ext_list_known)))}')
+    print(f'Unknown extensions: {sorted(list(set(ext_list_unknown)))}')
     remove_empty_folders(path)
 
 
