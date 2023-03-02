@@ -6,6 +6,7 @@ from shutil import ReadError
 from pathlib import Path
 from datetime import datetime
 import uuid
+import subprocess
 
 CYRILLIC_SYMBOLS = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяєіїґ ʼ'\"@"
 TRANSLATION = ("a", "b", "v", "g", "d", "e", "e", "j", "z", "i", "j", "k", "l", "m", "n", "o", "p", "r", "s", "t", "u",
@@ -79,7 +80,7 @@ def get_path_unsorted(path, depth=0, symbol='_', pipe='|', is_sort=False):
     return path_of_files
 
 
-def move_to_sorted(list_files, ext, count=0):
+def move_to_sorted(list_files, ext, count_a=0, count_er=0, count_s=0, count_o=0):
     """
         Moving files from source to sorted foldes.
         Renaming of duplicate if file or folder is already exist.
@@ -99,21 +100,21 @@ def move_to_sorted(list_files, ext, count=0):
                             shutil.unpack_archive(item[0], path_to_sorted)
                             os.remove(item[0])
                         else:
-                            count += 1
-                            shutil.unpack_archive(item[0], f'{path_to_sorted[:-1]}({count})/')
+                            count_a += 1
+                            shutil.unpack_archive(item[0], f'{path_to_sorted[:-1]}({count_a})/')
                             os.remove(item[0])
                     except ReadError as er:
                         print(f'*** Archive unpacking error: {er} ***')
-                        count += 1
-                        shutil.move(item[0], f'{sorted_folders_path}/other/{item[1]}(ERROR){count}.{item[2]}')
+                        count_er += 1
+                        shutil.move(item[0], f'{sorted_folders_path}/other/{item[1]}(ERROR){count_er}.{item[2]}')
                         pass
                 else:
                     path_to_sorted = f'{sorted_folders_path}/{k}/{normalise(item[1])}'
                     if not os.path.exists(f'{path_to_sorted}.{item[2]}'):
                         shutil.move(item[0], f'{path_to_sorted}.{item[2]}')
                     else:
-                        count += 1
-                        shutil.move(item[0], f'{path_to_sorted}({count}).{item[2]}')
+                        count_s += 1
+                        shutil.move(item[0], f'{path_to_sorted}({count_s}).{item[2]}')
 
     try:
         while not_empty_folders:
@@ -125,8 +126,8 @@ def move_to_sorted(list_files, ext, count=0):
                 if not os.path.exists(f'{path_to_unsorted}.{item[2]}'):
                     shutil.move(item[0], f'{path_to_unsorted}.{item[2]}')
                 else:
-                    count += 1
-                    shutil.move(item[0], f'{path_to_unsorted}{count}.{item[2]}')
+                    count_o += 1
+                    shutil.move(item[0], f'{path_to_unsorted}{count_o}.{item[2]}')
     except FileNotFoundError:
         pass
 
@@ -152,9 +153,14 @@ def main():
     """Main func"""
     get_path_from_args(path)
     move_to_sorted(path_of_files, extensions)
-    get_path_unsorted(Path(sorted_folders_path), is_sort=True)
-    print(f'Known extensions: {sorted(list(set(ext_list_known)))}')
-    print(f'Unknown extensions: {sorted(list(set(ext_list_unknown)))}')
+
+    # for using "subprocess.call(['tree'.." you must comment row "get_path_unsorted(Path(sorted_folders_path),..."
+    # for use next 1 command with Linux, additional software "tree" must be installed: sudo apt install tree
+    # print(subprocess.call(['tree', f'{Path(sorted_folders_path)}']))
+    get_path_unsorted(Path(sorted_folders_path), is_sort=True)  # comment this row if "subprocess.call.." is enabled
+
+    print(f'\nKnown extensions: {", ".join(sorted(list(set(ext_list_known))))}')
+    print(f'Unknown extensions: {", ".join(sorted(list(set(ext_list_unknown))))}')
     remove_empty_folders(path)
 
 
