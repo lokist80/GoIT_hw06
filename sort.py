@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 import subprocess
+from subprocess import CalledProcessError
 
 CYRILLIC_SYMBOLS = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяєіїґ ʼ'\"@"
 TRANSLATION = ("a", "b", "v", "g", "d", "e", "e", "j", "z", "i", "j", "k", "l", "m", "n", "o", "p", "r", "s", "t", "u",
@@ -15,13 +16,20 @@ TRANSLATION = ("a", "b", "v", "g", "d", "e", "e", "j", "z", "i", "j", "k", "l", 
 TRANS = {}
 NOW = datetime.now().strftime('_%d_%m_')
 UUID = str(uuid.uuid1())[:8]
-sorted_folders_path = f'{os.getcwd()}/sorted{NOW}{UUID}'
 path_of_files = []
 ext_list_known = []
 ext_list_unknown = []
 tip = """Run script with ONLY one argument --> full path to unsorted folder:
 python3 sort.py <path to folder>
 """
+try:
+    path = Path(sys.argv[1])
+    if len(sys.argv) > 2:
+        raise IndexError
+    sorted_folders_path = f'{os.path.abspath(str(path)[:-(len(os.path.basename(path)))])}/sorted{NOW}{UUID}'
+except IndexError:
+    print(tip)
+
 
 extensions = {
     'archive': ['zip', 'gz', 'tar'],
@@ -68,13 +76,13 @@ def get_path_unsorted(path, depth=0, symbol='_', pipe='|', is_sort=False):
             print(f'{fold}{margin}/{path.name}/')
         for folder in path.iterdir():
             if is_sort:
-                get_path_unsorted(folder, depth=depth+1, is_sort=True)
+                get_path_unsorted(folder, depth=depth + 1, is_sort=True)
             else:
                 get_path_unsorted(folder)
     else:
         ext = path.name[-3:].lstrip('.')
         file_name = path.name[:-3].rstrip('.')
-        path_of_files.append([str(path), str(file_name), str(ext)])
+        path_of_files.append([str(path), normalise(str(file_name)), str(ext)])
         if is_sort:
             print(f'{pipe:>7}{margin}{path.name}')
     return path_of_files
@@ -94,7 +102,7 @@ def move_to_sorted(list_files, ext, count_a=0, count_er=0, count_s=0, count_o=0)
             if item[2] in v:
                 ext_list_known.append(item[2])
                 if item[2] in ext['archive']:
-                    path_to_sorted = f'{sorted_folders_path}/{k}/{normalise(item[1])}/'
+                    path_to_sorted = f'{sorted_folders_path}/{k}/{item[1]}/'
                     try:
                         if not os.path.exists(path_to_sorted):
                             shutil.unpack_archive(item[0], path_to_sorted)
@@ -109,7 +117,7 @@ def move_to_sorted(list_files, ext, count_a=0, count_er=0, count_s=0, count_o=0)
                         shutil.move(item[0], f'{sorted_folders_path}/other/{item[1]}(ERROR){count_er}.{item[2]}')
                         pass
                 else:
-                    path_to_sorted = f'{sorted_folders_path}/{k}/{normalise(item[1])}'
+                    path_to_sorted = f'{sorted_folders_path}/{k}/{item[1]}'
                     if not os.path.exists(f'{path_to_sorted}.{item[2]}'):
                         shutil.move(item[0], f'{path_to_sorted}.{item[2]}')
                     else:
@@ -150,26 +158,28 @@ def remove_empty_folders(path):
 
 
 def main():
-    """Main func"""
-    get_path_from_args(path)
-    move_to_sorted(path_of_files, extensions)
-
-    # for using "subprocess.call(['tree'.." you must comment row "get_path_unsorted(Path(sorted_folders_path),..."
-    # for use next 1 command with Linux, additional software "tree" must be installed: sudo apt install tree
-    # print(subprocess.call(['tree', f'{Path(sorted_folders_path)}']))
-    get_path_unsorted(Path(sorted_folders_path), is_sort=True)  # comment this row if "subprocess.call.." is enabled
-
-    print(f'\nKnown extensions: {", ".join(sorted(list(set(ext_list_known))))}')
-    print(f'Unknown extensions: {", ".join(sorted(list(set(ext_list_unknown))))}')
-    remove_empty_folders(path)
+    """
+    Main func.
+    For using "tree" on Linux (for better-look output)
+    install "tree" software by command in your terminal:
+    sudo apt install tree
+    """
+    try:
+        get_path_from_args(path)
+        move_to_sorted(path_of_files, extensions)
+        try:
+            if sys.platform != 'win32':
+                print(subprocess.check_call(['tree', f'{Path(sorted_folders_path)}']))
+            else:
+                print(subprocess.call(['tree.com', '/f', f'{Path(sorted_folders_path)}']))
+        except (CalledProcessError, FileNotFoundError):
+            get_path_unsorted(Path(sorted_folders_path), is_sort=True)
+        print(f'\nKnown extensions: {", ".join(sorted(list(set(ext_list_known))))}')
+        print(f'Unknown extensions: {", ".join(sorted(list(set(ext_list_unknown))))}')
+        remove_empty_folders(path)
+    except NameError:
+        pass
 
 
 if __name__ == '__main__':
-    try:
-        path = Path(sys.argv[1])
-        if len(sys.argv) > 2:
-            raise IndexError
-        # path = Path(f'{os.getcwd()}/unsort')  # for debugging
-        main()
-    except IndexError:
-        print(tip)
+    main()
